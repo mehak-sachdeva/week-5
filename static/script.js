@@ -1,4 +1,4 @@
-var eventOutputContainer = document.getElementById("message");
+﻿var eventOutputContainer = document.getElementById("message");
 var eventSrc = new EventSource("/eventSource");
 
 eventSrc.onmessage = function(e) {
@@ -29,6 +29,8 @@ L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
 
 //create variables to store a reference to svg and g elements
 
+var svg_overlay=d3.select(map.getPanes(). overlayPane).append("svg");
+var g_overlay = svg_overlay.append("g").attr("class", "leaflet-zoom-hide");
 var svg = d3.select(map.getPanes().overlayPane).append("svg");
 var g = svg.append("g").attr("class", "leaflet-zoom-hide");
 
@@ -51,6 +53,9 @@ function updateData(){
 	var lat2 = mapBounds["_northEast"]["lat"];
 	var lng1 = mapBounds["_southWest"]["lng"];
 	var lng2 = mapBounds["_northEast"]["lng"];
+	var cell_size = 25;
+	var w = window.innerWidth;
+	var h = window.innerHeight;
 
 	request = "/getData?lat1=" + lat1 + "&lat2=" + lat2 + "&lng1=" + lng1 + "&lng2=" + lng2
 
@@ -77,8 +82,30 @@ function updateData(){
 			})
 		;
 
+		update();
+		map.on("viewreset", update);
+
+		var topleft = projectPoint (lat2, lng1);
+		
+		svg_overlay.attr("width", w)
+			.attr("height", h)
+			.style("left", topleft.x + "px")
+			.style("top", topleft.y + "px");
+		var rectangles = g_overlay.selectAll ("rect").data(data.analysis);
+		rectangles.enter().append("rect");
+		rectangles
+			.attr("x", function(d) {return d.x; })
+			.attr("y", function(d) {return d.y; })
+			.attr("width", function(d) {return d.width; })
+			.attr("height", function(d) {return d.height; })
+			.attr("fill-opacity", ".2")
+			.attr("fill", function(d) {return "hsl(0, " + Math.floor(d.value*100) + "%, 50%)"; });
+
+
 		// function to update the data
 		function update() {
+			
+		g_overlay.selectAll("rect").remove()
 
 			// get bounding box of data
 		    var bounds = path.bounds(data),
@@ -103,8 +130,7 @@ function updateData(){
 		};
 
 		// call function to 
-		update();
-		map.on("viewreset", update);
+		
 	});
 
 };
